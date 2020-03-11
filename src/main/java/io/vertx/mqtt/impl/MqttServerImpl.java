@@ -193,15 +193,30 @@ public class MqttServerImpl implements MqttServer {
     });
 
     if(options.isUseWebsocket()) {
+      addWsPipeline(pipeline);
 
-      pipeline.addBefore("mqttEncoder", "httpServerCodec", new HttpServerCodec());
+    }
+    System.out.println("Pipelines: "+pipeline.toString());
+  }
+
+  private void addWsPipeline(ChannelPipeline pipeline){
+    pipeline.addBefore("mqttEncoder", "httpServerCodec", new HttpServerCodec());
+    pipeline.addAfter("httpServerCodec", "aggregator", new HttpObjectAggregator(65536));
+    pipeline.addAfter("aggregator", "webSocketHandler",
+      new WebSocketServerProtocolHandler("/mqtt", MQTT_SUBPROTOCOL_CSV_LIST));
+    pipeline.addAfter("webSocketHandler", "bytebuf2wsEncoder", new ByteBufToWebSocketFrameEncoder());
+    pipeline.addAfter("bytebuf2wsEncoder", "ws2bytebufDecoder", new WebSocketFrameToByteBufDecoder());
+  }
+}
+
+/*      pipeline.addBefore("mqttEncoder", "HttpResponseEncoder", new HttpResponseEncoder());
+      pipeline.addAfter("HttpResponseEncoder", "httpServerCodec", new HttpRequestDecoder());
+
       pipeline.addAfter("httpServerCodec", "aggregator", new HttpObjectAggregator(65536));
 
       pipeline.addAfter("aggregator", "webSocketHandler",
         new WebSocketServerProtocolHandler("/mqtt", MQTT_SUBPROTOCOL_CSV_LIST));
 
-      pipeline.addAfter("webSocketHandler", "bytebuf2wsEncoder", new ByteBufToWebSocketFrameEncoder());
-      pipeline.addAfter("bytebuf2wsEncoder", "ws2bytebufDecoder", new WebSocketFrameToByteBufDecoder());
-    }
-  }
-}
+
+      pipeline.addAfter("webSocketHandler", "ws2bytebufDecoder", new WebSocketFrameToByteBufDecoder());
+      pipeline.addAfter("ws2bytebufDecoder", "bytebuf2wsEncoder", new ByteBufToWebSocketFrameEncoder());*/
